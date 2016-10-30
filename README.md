@@ -8,8 +8,8 @@ In this repo i have made couple of small improvement to keep my copter flying ac
 DONE:
 
 - wire switch (port 3) for auto level / acro (no level) modes
-- LED indicator of acro mode when not arme
-- RC rates for YAW, PITCH and ROLE (independent)
+- LED indicator of acro mode when not armed
+- RC rates for YAW, PITCH and ROLL (independent)
 - wait 1 second before disarming - to prevent accidental disarms while flying
 - control MIN BATTERY WARNING LEVEL via a constant
 - remove ESC proding when idle - with BLHELIs this maked props move and is not necessary
