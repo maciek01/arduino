@@ -1,7 +1,7 @@
 # arduino
 
 
-YMFL is an auto pilot project by Joop Brokking.
+YMFC is an auto pilot project by Joop Brokking.
 
 In this repo i have made couple of small improvement to keep my copte flying accourding to what i am used to from my experience with cleanflight and beta flight.
 
