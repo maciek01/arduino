@@ -1,4 +1,4 @@
-# arduino
+# YMFC-AL - MNK
 
 
 YMFC is an auto pilot project by Joop Brokking.
