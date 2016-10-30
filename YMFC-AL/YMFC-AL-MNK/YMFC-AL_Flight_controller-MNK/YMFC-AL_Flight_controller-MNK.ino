@@ -247,7 +247,8 @@ void loop(){
   pitch_level_adjust = angle_pitch * 15;                                    //Calculate the pitch angle correction
   roll_level_adjust = angle_roll * 15;                                      //Calculate the roll angle correction
 
-  if(!auto_level){                                                          //If the quadcopter is not in auto-level mode
+  //If the quadcopter is not in auto-level mode
+  if(!auto_level /* MNK dont autolevel with min throttle */ || (receiver_input_channel_3 < 1050)) {
     pitch_level_adjust = 0;                                                 //Set the pitch angle correction to zero.
     roll_level_adjust = 0;                                                  //Set the roll angle correcion to zero.
   }
