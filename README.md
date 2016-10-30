@@ -23,4 +23,5 @@ TODO:
 - figure out how to prevent acc drift during AL flight
 - ADD battery low beeper (port 2)
 - ADD Bluetooth on rx/tx to transmit FC state - investigate crashes :)
+- Parameter (PID) tuning using RC channels
 
