@@ -75,6 +75,14 @@ float pid_i_mem_yaw, pid_yaw_setpoint, gyro_yaw_input, pid_output_yaw, pid_last_
 float angle_roll_acc, angle_pitch_acc, angle_pitch, angle_roll;
 boolean gyro_angles_set;
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//MNK extentions
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//disarm sequence management
+unsigned long disarmStartMS = 0;
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Setup routine
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -264,8 +272,20 @@ void loop(){
     //MNK force LED to LOW
     digitalWrite(12, LOW);
   }
-  //Stopping the motors: throttle low and yaw right.
-  if(start == 2 && receiver_input_channel_3 < 1050 && receiver_input_channel_4 > 1950) start = 0;
+  //Stopping the motors: throttle low and yaw right. MNK for 1 second
+  if(start == 2) {
+    if (receiver_input_channel_3 < 1050 && receiver_input_channel_4 > 1950) {
+      if (disarmStartMS == 0) {
+        disarmStartMS = millis();
+      } else if (millis() - disarmStartMS >= 1000) {
+        start = 0;
+        disarmStartMS = 0;
+      }
+    } else if (disarmStartMS != 0) {
+      //reset disarm sequence
+      disarmStartMS = 0;
+    }
+  }
 
   //The PID set point in degrees per second is determined by the roll receiver input.
   //In the case of deviding by 3 the max roll rate is aprox 164 degrees per second ( (500-8)/3 = 164d/s ).
