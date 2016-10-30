@@ -1,7 +1,7 @@
 # YMFC-AL - MNK
 
 
-YMFC/YMFC-AL is an auto pilot project by Joop Brokking.
+YMFC/YMFC-AL is an auto pilot project by Joop Brokking (http://www.brokking.net/ymfc-al_main.html).
 
 In this repo i have made couple of small improvement to keep my copter flying according to what i am used to from my experience with cleanflight and betaflight.
 
