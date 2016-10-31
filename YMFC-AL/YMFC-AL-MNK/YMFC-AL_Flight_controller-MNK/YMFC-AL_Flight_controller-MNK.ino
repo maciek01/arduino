@@ -92,12 +92,17 @@ boolean gyro_angles_set;
 //disarm sequence management
 unsigned long disarmStartMS = 0;
 
-//beeper handling
-unsigned long beeperEdgeMICROS = 0;
+//beeper wave handling
+
 boolean beeperGenerateWave = false;
+boolean beeperGenerateWaveMem = false;
+unsigned long beeperEdgeMICROS = 0;
 int beeperWaveHalfPeriod = 150;//microseconds
 int beeperLevel = LOW;
+
+//beeper pattern handling
 boolean beeperActive = false;
+boolean beeperActiveMem = false;
 int beepMillis = 100;//length of beep
 int beepPeriodMillis = 1000;//period of beep
 unsigned long beepStartedMS = 0;//beep started
@@ -240,9 +245,12 @@ void loop(){
       PORTD &= B11111011;
     }
     if (!beeperGenerateWave && loopMillis - beepStartedMS >= beepPeriodMillis) {
+      //initiate the HIGH wave
       beeperGenerateWave = true;
       PORTD |= B00000100;
       beepStartedMS = loopMillis;
+      beeperEdgeMICROS = loopMicros;
+      beeperLevel = HIGH;
     }
   }
  
