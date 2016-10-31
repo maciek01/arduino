@@ -14,6 +14,8 @@ DONE:
 - control MIN BATTERY WARNING LEVEL via a constant
 - remove ESC proding when idle - with BLHELIs this maked props move and is not necessary
 - disable auto level function on min throttle to prevent flips while min thorttle on the ground 
+- ADD battery low beeper (port 2)
+- ADD beeps when behind on the mainloop
 
 
 TODO:
@@ -21,8 +23,6 @@ TODO:
 - ACRO mode switch via RC channel
 - ARM/DISARM via RC channel
 - figure out how to prevent acc drift during AL flight
-- ADD battery low beeper (port 2)
-- ADD beeps when behind on the mainloop
 - ADD Bluetooth on rx/tx to transmit FC state - investigate crashes :)
 - Parameter (PID) tuning using RC channels
 
