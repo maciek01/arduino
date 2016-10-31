@@ -22,10 +22,18 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //MNK constants
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-int MIN_BATTERY_V = 1030;
-float RC_RATE_PITCH = 1.0;
-float RC_RATE_ROLL = 1.0;
-float RC_RATE_YAW = 1.5;
+const int MIN_BATTERY_V = 1030;
+const float RC_RATE_PITCH = 1.0;
+const float RC_RATE_ROLL = 1.0;
+const float RC_RATE_YAW = 1.5;
+
+const int BEEP_BATTERY_LOW_BEEP_MS = 100;
+const int BEEP_BATTERY_LOW_PERIOD_MS = 1000;
+
+const int BEEP_ALERT_BEEP_MS = 250;
+const int BEEP_ALERT_PERIOD_MS = 500;
+
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //PID gain and limit settings
@@ -58,7 +66,6 @@ int counter_channel_1, counter_channel_2, counter_channel_3, counter_channel_4, 
 int esc_1, esc_2, esc_3, esc_4;
 int throttle, battery_voltage;
 int cal_int, start, gyro_address;
-int loopCounter = 0;
 int receiver_input[5];
 int temperature;
 int acc_axis[4], gyro_axis[4];
@@ -85,6 +92,20 @@ boolean gyro_angles_set;
 //disarm sequence management
 unsigned long disarmStartMS = 0;
 
+//beeper handling
+unsigned long beeperEdgeMICROS = 0;
+boolean beeperGenerateWave = false;
+int beeperWaveHalfPeriod = 150;//microseconds
+int beeperLevel = LOW;
+boolean beeperActive = false;
+int beepMillis = 100;//length of beep
+int beepPeriodMillis = 1000;//period of beep
+unsigned long beepStartedMS = 0;//beep started
+
+unsigned long loopCounter = 0;
+unsigned long loopMillis = 0;
+unsigned long loopMicros = 0;
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Setup routine
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -104,8 +125,9 @@ void setup(){
   DDRB |= B00110000;                                                        //Configure digital poort 12 and 13 as output.
 
 
-  //MNK - configure port 3 as input - default - not needed
-  //DDRD &= B11110111;
+  //MNK - configure port 3 as input - default - not needed, port 2 as output (beeper)
+  //DDRD &= B11110111;//port 3 - acro mode
+  DDRD |= B00000100;//port 2 - beeper
 
   //Use the led on the Arduino for startup indication.
   digitalWrite(12,HIGH);                                                    //Turn on the warning led.
@@ -141,6 +163,7 @@ void setup(){
     //PORTD &= B00001111;                                                     //Set digital poort 4, 5, 6 and 7 low.
     delay(3);                                                               //Wait 3 milliseconds before the next loop.
   }
+  
   //Now that we have 2000 measures, we need to devide by 2000 to get the average gyro offset.
   gyro_axis_cal[1] /= 2000;                                                 //Divide the roll total by 2000.
   gyro_axis_cal[2] /= 2000;                                                 //Divide the pitch total by 2000.
@@ -191,6 +214,9 @@ void loop(){
 
   //MNK get autolevel status from port 3: 1 = acro, 0 = auto level
   loopCounter++;
+  loopMillis = millis();
+  loopMicros = micros();
+  
   if (start == 0) {
 
     //motor stopped activities
@@ -203,6 +229,35 @@ void loop(){
       int period = loopCounter % 400;
       if (period == 0) digitalWrite(12, HIGH);
       if (period == 10) digitalWrite(12, LOW);
+    }
+  }
+
+
+  //MNK beeper pattern generation
+  if (beeperActive) {
+    if (beeperGenerateWave && loopMillis - beepStartedMS >= beepMillis) {
+      beeperGenerateWave = false;
+      PORTD &= B11111011;
+    }
+    if (!beeperGenerateWave && loopMillis - beepStartedMS >= beepPeriodMillis) {
+      beeperGenerateWave = true;
+      PORTD |= B00000100;
+      beepStartedMS = loopMillis;
+    }
+  }
+ 
+  //MNK beeper signal handling (if active)
+  if (beeperGenerateWave) {
+    if (loopMicros - beeperEdgeMICROS >= beeperWaveHalfPeriod) {
+      //time to switch
+      if (beeperLevel == LOW) {
+        PORTD |= B00000100;
+        beeperLevel = HIGH;
+      } else {
+        PORTD &= B11111011;
+        beeperLevel = LOW;
+      }
+      beeperEdgeMICROS = loopMicros;
     }
   }
 
@@ -279,8 +334,8 @@ void loop(){
   if(start == 2) {
     if (receiver_input_channel_3 < 1050 && receiver_input_channel_4 > 1950) {
       if (disarmStartMS == 0) {
-        disarmStartMS = millis();
-      } else if (millis() - disarmStartMS >= 1000) {
+        disarmStartMS = loopMillis;
+      } else if (loopMillis - disarmStartMS >= 1000) {
         start = 0;
         disarmStartMS = 0;
       }
@@ -335,10 +390,17 @@ void loop(){
   //The battery voltage is needed for compensation.
   //A complementary filter is used to reduce noise.
   //0.09853 = 0.08 * 1.2317.
+  //MNK expected 0.1 ms latency:
   battery_voltage = battery_voltage * 0.92 + (analogRead(0) + 65) * 0.09853;
 
   //Turn on the led if battery voltage is to low.
-  if(battery_voltage < MIN_BATTERY_V && battery_voltage > 600)digitalWrite(12, HIGH);
+  if(battery_voltage < MIN_BATTERY_V && battery_voltage > 600 && !beeperActive) {
+    digitalWrite(12, HIGH);
+    startBeeperBatteryLow();
+  } else if (beeperActive) {
+    stopBeeper();
+    digitalWrite(12, LOW);
+  }
 
 
   throttle = receiver_input_channel_3;                                      //We need the throttle signal as a base signal.
@@ -393,7 +455,11 @@ void loop(){
   //the Q&A page: 
   //! ! ! ! ! ! PORTD |= B11110000! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !
     
-  if(micros() - loop_timer > 4050)digitalWrite(12, HIGH);                   //Turn on the LED if the loop time exceeds 4050us.
+  if(micros() - loop_timer > 4050) {
+    digitalWrite(12, HIGH);                   //Turn on the LED if the loop time exceeds 4050us.
+    //MNK:
+    startBeeperWarning();
+  }
   
   //All the information for controlling the motor's is available.
   //The refresh rate is 250Hz. That means the esc's need there pulse every 4ms.
@@ -629,5 +695,27 @@ void set_gyro_registers(){
     Wire.endTransmission();                                                    //End the transmission with the gyro    
 
   }  
+}
+
+
+void startBeeperBatteryLow() {
+  beepMillis = BEEP_BATTERY_LOW_BEEP_MS;
+  beepPeriodMillis = BEEP_BATTERY_LOW_PERIOD_MS;
+  beeperActive = true;
+  beeperGenerateWave = true;    
+}
+
+
+void startBeeperWarning() {
+  beepMillis = BEEP_ALERT_BEEP_MS;
+  beepPeriodMillis = BEEP_ALERT_PERIOD_MS;
+  beeperActive = true;
+  beeperGenerateWave = true;    
+}
+
+void stopBeeper() {
+  beeperActive = false;
+  beeperGenerateWave = true;   
+  PORTD &= B11111011; 
 }
 
