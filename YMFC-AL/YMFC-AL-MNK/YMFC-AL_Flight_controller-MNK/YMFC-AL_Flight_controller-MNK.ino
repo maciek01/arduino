@@ -28,12 +28,13 @@ const float RC_RATE_ROLL = 1.0;
 const float RC_RATE_YAW = 1.5;
 
 const int BEEP_BATTERY_LOW_BEEP_MS = 100;
-const int BEEP_BATTERY_LOW_PERIOD_MS = 1000;
+const int BEEP_BATTERY_LOW_PERIOD_MS = 1500;
 
 const int BEEP_ALERT_BEEP_MS = 250;
 const int BEEP_ALERT_PERIOD_MS = 500;
 
 
+const int BEEPER_HALF_PERIOD = 100;//microseconds
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //PID gain and limit settings
@@ -97,7 +98,6 @@ unsigned long disarmStartMS = 0;
 boolean beeperGenerateWave = false;
 boolean beeperGenerateWaveMem = false;
 unsigned long beeperEdgeMICROS = 0;
-int beeperWaveHalfPeriod = 150;//microseconds
 int beeperLevel = LOW;
 
 //beeper pattern handling
@@ -256,7 +256,7 @@ void loop(){
  
   //MNK beeper signal handling (if active)
   if (beeperGenerateWave) {
-    if (loopMicros - beeperEdgeMICROS >= beeperWaveHalfPeriod) {
+    if (loopMicros - beeperEdgeMICROS >= BEEPER_HALF_PERIOD) {
       //time to switch
       if (beeperLevel == LOW) {
         PORTD |= B00000100;
@@ -405,11 +405,8 @@ void loop(){
   if(battery_voltage < MIN_BATTERY_V && battery_voltage > 600 && !beeperActive) {
     digitalWrite(12, HIGH);
     startBeeperBatteryLow();
-  } else if (beeperActive) {
-    stopBeeper();
-    digitalWrite(12, LOW);
-  }
-
+    //startBeeperWarning();
+  } 
 
   throttle = receiver_input_channel_3;                                      //We need the throttle signal as a base signal.
 
