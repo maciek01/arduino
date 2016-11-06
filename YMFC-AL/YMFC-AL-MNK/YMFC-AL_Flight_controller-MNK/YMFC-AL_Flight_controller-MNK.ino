@@ -27,15 +27,6 @@ const float RC_RATE_PITCH = 1.0;
 const float RC_RATE_ROLL = 1.0;
 const float RC_RATE_YAW = 1.5;
 
-const int BEEP_BATTERY_LOW_BEEP_MS = 100;
-const int BEEP_BATTERY_LOW_PERIOD_MS = 1500;
-
-const int BEEP_ALERT_BEEP_MS = 250;
-const int BEEP_ALERT_PERIOD_MS = 500;
-
-
-const int BEEPER_HALF_PERIOD = 100;//microseconds
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //PID gain and limit settings
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -93,20 +84,19 @@ boolean gyro_angles_set;
 //disarm sequence management
 unsigned long disarmStartMS = 0;
 
-//beeper wave handling
+//beeper handling
 
-boolean beeperGenerateWave = false;
-boolean beeperGenerateWaveMem = false;
-unsigned long beeperEdgeMICROS = 0;
-int beeperLevel = LOW;
-
-//beeper pattern handling
 boolean beeperActive = false;
-boolean beeperActiveMem = false;
-int beepMillis = 100;//length of beep
-int beepPeriodMillis = 1000;//period of beep
-unsigned long beepStartedMS = 0;//beep started
+const int FREQ = 8;
+const int WARNING_PERIOD = 10000;
+const int WARNING_SOUND = 1000;
+const int SEVERE_PERIOD = 2500;
+const int SEVERE_SOUND = 1250;
+unsigned long intCounter = 0;
+unsigned int tonePeriod = WARNING_PERIOD;
+unsigned int toneSound = WARNING_SOUND;
 
+//helpers
 unsigned long loopCounter = 0;
 unsigned long loopMillis = 0;
 unsigned long loopMicros = 0;
@@ -132,7 +122,7 @@ void setup(){
 
   //MNK - configure port 3 as input - default - not needed, port 2 as output (beeper)
   //DDRD &= B11110111;//port 3 - acro mode
-  DDRD |= B00000100;//port 2 - beeper
+  beeperSetup();
 
   //Use the led on the Arduino for startup indication.
   digitalWrite(12,HIGH);                                                    //Turn on the warning led.
@@ -181,6 +171,7 @@ void setup(){
   PCMSK0 |= (1 << PCINT3);                                                  //Set PCINT3 (digital input 11)to trigger an interrupt on state change.
 
   //Wait until the receiver is active and the throtle is set to the lower position.
+  toneWarning();
   while(receiver_input_channel_3 < 990 || receiver_input_channel_3 > 1020 || receiver_input_channel_4 < 1400){
     receiver_input_channel_3 = convert_receiver_channel(3);                 //Convert the actual receiver signals for throttle to the standard 1000 - 2000us
     receiver_input_channel_4 = convert_receiver_channel(4);                 //Convert the actual receiver signals for yaw to the standard 1000 - 2000us
@@ -198,6 +189,7 @@ void setup(){
     }
   }
   start = 0;                                                                //Set start back to 0.
+  toneNone();
 
   //Load the battery voltage to the battery_voltage variable.
   //65 is the voltage compensation for the diode.
@@ -212,6 +204,31 @@ void setup(){
   //When everything is done, turn off the led.
   digitalWrite(12,LOW);                                                     //Turn off the warning led.
 }
+
+
+/**
+ * setup the timer registers
+ */
+void beeperSetup() {
+  DDRD |= B00000100;//port 2 - beeper
+  //DDRB |= B00001000;//port 11 - test beeper
+  
+  // initialize timer1 
+  noInterrupts();           // disable all interrupts
+  TCCR1A = 0;
+  TCCR1B = 0;
+  TCNT1  = 0;
+
+  //OCR1A = 31250;            // compare match register 16MHz/256/2Hz
+  OCR1A = FREQ;            // compare match register 16MHz/256/FRQHz
+  
+  TCCR1B |= (1 << WGM12);   // CTC mode
+  TCCR1B |= (1 << CS12);    // 256 prescaler 
+  //TIMSK1 |= (1 << OCIE1A);  // enable timer compare interrupt
+  interrupts();             // enable all interrupts
+
+}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Main program loop
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -237,37 +254,6 @@ void loop(){
     }
   }
 
-
-  //MNK beeper pattern generation
-  if (beeperActive) {
-    if (beeperGenerateWave && loopMillis - beepStartedMS >= beepMillis) {
-      beeperGenerateWave = false;
-      PORTD &= B11111011;
-    }
-    if (!beeperGenerateWave && loopMillis - beepStartedMS >= beepPeriodMillis) {
-      //initiate the HIGH wave
-      beeperGenerateWave = true;
-      PORTD |= B00000100;
-      beepStartedMS = loopMillis;
-      beeperEdgeMICROS = loopMicros;
-      beeperLevel = HIGH;
-    }
-  }
- 
-  //MNK beeper signal handling (if active)
-  if (beeperGenerateWave) {
-    if (loopMicros - beeperEdgeMICROS >= BEEPER_HALF_PERIOD) {
-      //time to switch
-      if (beeperLevel == LOW) {
-        PORTD |= B00000100;
-        beeperLevel = HIGH;
-      } else {
-        PORTD &= B11111011;
-        beeperLevel = LOW;
-      }
-      beeperEdgeMICROS = loopMicros;
-    }
-  }
 
   //65.5 = 1 deg/sec (check the datasheet of the MPU-6050 for more information).
   gyro_roll_input = (gyro_roll_input * 0.7) + ((gyro_roll / 65.5) * 0.3);   //Gyro pid input is deg/sec.
@@ -404,8 +390,9 @@ void loop(){
   //Turn on the led if battery voltage is to low.
   if(battery_voltage < MIN_BATTERY_V && battery_voltage > 600 && !beeperActive) {
     digitalWrite(12, HIGH);
-    startBeeperBatteryLow();
-    //startBeeperWarning();
+
+    //NMNK
+    toneWarning();
   } 
 
   throttle = receiver_input_channel_3;                                      //We need the throttle signal as a base signal.
@@ -463,7 +450,7 @@ void loop(){
   if(micros() - loop_timer > 4050) {
     digitalWrite(12, HIGH);                   //Turn on the LED if the loop time exceeds 4050us.
     //MNK:
-    startBeeperWarning();
+    toneSevere();
   }
   
   //All the information for controlling the motor's is available.
@@ -543,6 +530,24 @@ ISR(PCINT0_vect){
     receiver_input[4] = current_time - timer_4;                             //Channel 4 is current_time - timer_4.
   }
 }
+
+
+
+/**
+ * manager timer 1 interrupts - handle beeper
+ */
+ISR(TIMER1_COMPA_vect)          // timer compare interrupt service routine
+{
+  intCounter++;
+
+  if (intCounter % tonePeriod < toneSound) {
+    PORTD ^=  B00000100;
+    //PORTB ^=  B00001000;
+  }
+
+}
+
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Subroutine for reading the gyro
@@ -703,24 +708,42 @@ void set_gyro_registers(){
 }
 
 
-void startBeeperBatteryLow() {
-  beepMillis = BEEP_BATTERY_LOW_BEEP_MS;
-  beepPeriodMillis = BEEP_BATTERY_LOW_PERIOD_MS;
+
+/**
+ * turn warning on
+ */
+void toneWarning() {
+  noInterrupts();
+  tonePeriod = WARNING_PERIOD;
+  toneSound = WARNING_SOUND; 
+  TIMSK1 |= (1 << OCIE1A); 
   beeperActive = true;
-  beeperGenerateWave = true;    
+  interrupts();
+}
+
+/**
+ * turn severe on
+ */
+void toneSevere() {
+  noInterrupts();
+  tonePeriod = SEVERE_PERIOD;
+  toneSound = SEVERE_SOUND;
+  TIMSK1 |= (1 << OCIE1A);  
+  beeperActive = true;
+  interrupts();
 }
 
 
-void startBeeperWarning() {
-  beepMillis = BEEP_ALERT_BEEP_MS;
-  beepPeriodMillis = BEEP_ALERT_PERIOD_MS;
-  beeperActive = true;
-  beeperGenerateWave = true;    
-}
-
-void stopBeeper() {
+/**
+ * stop beeper
+ */
+void toneNone() {
+  noInterrupts();
+  TIMSK1 &= ~(1 << OCIE1A);
+  intCounter = 0;
   beeperActive = false;
-  beeperGenerateWave = true;   
-  PORTD &= B11111011; 
+  interrupts();
 }
+
+
 
