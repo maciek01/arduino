@@ -12,8 +12,9 @@ DONE:
 - RC rates for YAW, PITCH and ROLL (independent)
 - wait 1 second before disarming - to prevent accidental disarms while flying
 - control MIN BATTERY WARNING LEVEL via a constant
-- remove ESC proding when idle - with BLHELIs this maked props move and is not necessary
-- disable auto level function on min throttle to prevent flips while min thorttle on the ground 
+- remove ESC proding when idle - not necessary with BLHELI ESCs
+- disable auto level function and PID loop on min throttle to prevent flips on the ground 
+- beeper support via timer interrupt
 - ADD battery low beeper (port 13)
 - ADD beeps when behind on the mainloop
 
