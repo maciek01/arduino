@@ -5,7 +5,7 @@ const int WARNING_PERIOD = 10000;
 const int WARNING_SOUND = 1000;
 const int SEVERE_PERIOD = 2500;
 const int SEVERE_SOUND = 1250;
-unsigned long intCounter = 0;
+volatile unsigned long intCounter = 0;
 unsigned int tonePeriod = WARNING_PERIOD;
 unsigned int toneSound = WARNING_SOUND;
 
@@ -23,11 +23,11 @@ void setup()
  * setup the timer registers
  */
 void beeperSetup() {
-  DDRD |= B00000100;//port 2 - beeper
-  DDRB |= B00001000;//port 11 - test beeper
-  
+  DDRB |= B00101000;//port 11 and 13 - test beeper
+
   // initialize timer1 
   noInterrupts();           // disable all interrupts
+  
   TCCR1A = 0;
   TCCR1B = 0;
   TCNT1  = 0;
@@ -37,8 +37,14 @@ void beeperSetup() {
   
   TCCR1B |= (1 << WGM12);   // CTC mode
   TCCR1B |= (1 << CS12);    // 256 prescaler 
+
+  
   //TIMSK1 |= (1 << OCIE1A);  // enable timer compare interrupt
   interrupts();             // enable all interrupts
+
+
+
+  Serial.begin(57600); 
 
 }
 
@@ -48,11 +54,27 @@ void loop()
   //activate beeper
   toneWarning();
   //toneSevere();
-  delay(10000);
+
+
+  unsigned long start = millis();
+  
+  while (millis() - start < 10000) {
+    Serial.print("TONE: ");
+    Serial.println(PORTB);  
+  }
 
   //deactivate beeper
   toneNone();
-  delay(10000);
+
+
+  start = millis();
+
+  while (millis() - start < 10000) {
+    Serial.print("NO TONE: ");
+    Serial.println(PORTB);  
+  }
+  
+
 }
 
 
@@ -65,6 +87,7 @@ void toneWarning() {
   toneSound = WARNING_SOUND; 
   TIMSK1 |= (1 << OCIE1A); 
   beeperActive = true;
+  PORTB ^=  B00101000;
   interrupts();
 }
 
@@ -77,6 +100,7 @@ void toneSevere() {
   toneSound = SEVERE_SOUND;
   TIMSK1 |= (1 << OCIE1A);  
   beeperActive = true;
+  PORTB ^=  B00101000;
   interrupts();
 }
 
@@ -89,6 +113,7 @@ void toneNone() {
   TIMSK1 &= ~(1 << OCIE1A);
   intCounter = 0;
   beeperActive = false;
+  PORTB &=  B11010111;
   interrupts();
 }
 
@@ -100,8 +125,8 @@ ISR(TIMER1_COMPA_vect)          // timer compare interrupt service routine
   intCounter++;
 
   if (intCounter % tonePeriod < toneSound) {
-    PORTD ^=  B00000100;
-    PORTB ^=  B00001000;
+    PORTB ^=  B00101000;//13 and 11
+    //PORTB ^=  B00100000;//13 only
   }
 
 }

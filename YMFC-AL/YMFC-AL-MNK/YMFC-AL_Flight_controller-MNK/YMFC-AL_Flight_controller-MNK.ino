@@ -210,11 +210,13 @@ void setup(){
  * setup the timer registers
  */
 void beeperSetup() {
-  DDRD |= B00000100;//port 2 - beeper
-  //DDRB |= B00001000;//port 11 - test beeper
   
+  //DDRB |= B00101000;//port 11 and 13 - beeper
+  DDRB |= B00100000;//port 11 only - beeper  
+
   // initialize timer1 
   noInterrupts();           // disable all interrupts
+  
   TCCR1A = 0;
   TCCR1B = 0;
   TCNT1  = 0;
@@ -224,9 +226,10 @@ void beeperSetup() {
   
   TCCR1B |= (1 << WGM12);   // CTC mode
   TCCR1B |= (1 << CS12);    // 256 prescaler 
+
+  
   //TIMSK1 |= (1 << OCIE1A);  // enable timer compare interrupt
   interrupts();             // enable all interrupts
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -532,7 +535,6 @@ ISR(PCINT0_vect){
 }
 
 
-
 /**
  * manager timer 1 interrupts - handle beeper
  */
@@ -541,8 +543,8 @@ ISR(TIMER1_COMPA_vect)          // timer compare interrupt service routine
   intCounter++;
 
   if (intCounter % tonePeriod < toneSound) {
-    PORTD ^=  B00000100;
-    //PORTB ^=  B00001000;
+    //PORTB ^=  B00101000;//13 and 11
+    PORTB ^=  B00100000;//13 only
   }
 
 }
@@ -718,6 +720,8 @@ void toneWarning() {
   toneSound = WARNING_SOUND; 
   TIMSK1 |= (1 << OCIE1A); 
   beeperActive = true;
+  //PORTB ^=  B00101000;//13 and 11
+  PORTB ^=  B00100000;//13 only
   interrupts();
 }
 
@@ -730,6 +734,8 @@ void toneSevere() {
   toneSound = SEVERE_SOUND;
   TIMSK1 |= (1 << OCIE1A);  
   beeperActive = true;
+  //PORTB ^=  B00101000;//13 and 11
+  PORTB ^=  B00100000;//13 only
   interrupts();
 }
 
@@ -742,6 +748,8 @@ void toneNone() {
   TIMSK1 &= ~(1 << OCIE1A);
   intCounter = 0;
   beeperActive = false;
+  //PORTB &=  B11010111;//13 and 11
+  PORTB &=  B11011111;//13 only
   interrupts();
 }
 
