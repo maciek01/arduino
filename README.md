@@ -14,15 +14,16 @@ DONE:
 - control MIN BATTERY WARNING LEVEL via a constant
 - remove ESC proding when idle - with BLHELIs this maked props move and is not necessary
 - disable auto level function on min throttle to prevent flips while min thorttle on the ground 
-- ADD battery low beeper (port 2)
+- ADD battery low beeper (port 13)
 - ADD beeps when behind on the mainloop
 
 
 TODO:
 
+- support for SBUS (via inverter http://www.dx.com/p/signal-inverter-for-naze32-flight-control-sbus-receiver-black-429018#.WCJNt8wrKV4)
 - ACRO mode switch via RC channel
 - ARM/DISARM via RC channel
-- figure out how to prevent acc drift during AL flight
-- ADD Bluetooth on rx/tx to transmit FC state - investigate crashes :)
+- figure out how to prevent XY acc drift during AL flight
+- ADD Bluetooth on rx/tx to transmit FC state - crashes investigation
 - Parameter (PID) tuning using RC channels
 
