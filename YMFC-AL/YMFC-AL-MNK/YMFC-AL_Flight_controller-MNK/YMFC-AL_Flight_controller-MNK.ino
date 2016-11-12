@@ -50,31 +50,31 @@ boolean auto_level = true;                 //Auto level on (true) or off (false)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Declaring global variables
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-byte last_channel_1, last_channel_2, last_channel_3, last_channel_4;
+byte last_channel_1 = 0, last_channel_2 = 0, last_channel_3 = 0, last_channel_4 = 0;
 byte eeprom_data[36];
-byte highByte, lowByte;
-int receiver_input_channel_1, receiver_input_channel_2, receiver_input_channel_3, receiver_input_channel_4;
-int counter_channel_1, counter_channel_2, counter_channel_3, counter_channel_4, loop_counter;
-int esc_1, esc_2, esc_3, esc_4;
-int throttle, battery_voltage;
-int cal_int, start, gyro_address;
+byte highByte = 0, lowByte = 0;
+int receiver_input_channel_1 = 0, receiver_input_channel_2 = 0, receiver_input_channel_3 = 0, receiver_input_channel_4 = 0;
+int counter_channel_1 = 0, counter_channel_2 = 0, counter_channel_3 = 0, counter_channel_4 = 0, loop_counter = 0;
+int esc_1 = 0, esc_2 = 0, esc_3 = 0, esc_4 = 0;
+int throttle = 0, battery_voltage = 0;
+int cal_int = 0, start = 0, gyro_address = 0;
 int receiver_input[5];
-int temperature;
+int temperature = 0;
 int acc_axis[4], gyro_axis[4];
-float roll_level_adjust, pitch_level_adjust;
+float roll_level_adjust = 0, pitch_level_adjust = 0;
 
-long acc_x, acc_y, acc_z, acc_total_vector;
-unsigned long timer_channel_1, timer_channel_2, timer_channel_3, timer_channel_4, esc_timer, esc_loop_timer;
-unsigned long timer_1, timer_2, timer_3, timer_4, current_time;
-unsigned long loop_timer;
-double gyro_pitch, gyro_roll, gyro_yaw;
+long acc_x = 0, acc_y = 0, acc_z = 0, acc_total_vector = 0;
+unsigned long timer_channel_1 = 0, timer_channel_2 = 0, timer_channel_3 = 0, timer_channel_4 = 0, esc_timer = 0, esc_loop_timer = 0;
+unsigned long timer_1 = 0, timer_2 = 0, timer_3 = 0, timer_4 = 0, current_time = 0;
+unsigned long loop_timer = 0;
+double gyro_pitch = 0, gyro_roll = 0, gyro_yaw = 0;
 double gyro_axis_cal[4];
-float pid_error_temp;
-float pid_i_mem_roll, pid_roll_setpoint, gyro_roll_input, pid_output_roll, pid_last_roll_d_error;
-float pid_i_mem_pitch, pid_pitch_setpoint, gyro_pitch_input, pid_output_pitch, pid_last_pitch_d_error;
-float pid_i_mem_yaw, pid_yaw_setpoint, gyro_yaw_input, pid_output_yaw, pid_last_yaw_d_error;
-float angle_roll_acc, angle_pitch_acc, angle_pitch, angle_roll;
-boolean gyro_angles_set;
+float pid_error_temp = 0;
+float pid_i_mem_roll = 0, pid_roll_setpoint = 0, gyro_roll_input = 0, pid_output_roll = 0, pid_last_roll_d_error = 0;
+float pid_i_mem_pitch = 0, pid_pitch_setpoint = 0, gyro_pitch_input = 0, pid_output_pitch = 0, pid_last_pitch_d_error = 0;
+float pid_i_mem_yaw = 0, pid_yaw_setpoint = 0, gyro_yaw_input = 0, pid_output_yaw = 0, pid_last_yaw_d_error = 0;
+float angle_roll_acc = 0, angle_pitch_acc = 0, angle_pitch = 0, angle_roll = 0;
+boolean gyro_angles_set = false;
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
